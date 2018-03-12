@@ -22,14 +22,30 @@ colours = [1, 2, 3, 6, 8]
 styles = [2, 1, 3, 4, 5]
 
 def findTree(f):
-    for key in f.GetListOfKeys():
-        tree = f.Get(key.GetName())
-        if isinstance(tree, ROOT.TTree) and tree.GetListOfBranches().GetSize() > 10:
-            return tree
-        elif isinstance(tree, ROOT.TDirectory):
-            tree = findTree(tree)
-            if tree:
+    notFound=False
+    if options.dir:
+      for dirkey in f.GetListOfKeys():
+          dir = f.Get(dirkey.GetName())
+          if not isinstance(dir, ROOT.TDirectory): continue
+          if(options.dir and options.dir != dirkey.GetName()): continue
+          for key in dir.GetListOfKeys():
+            tree = dir.Get(key.GetName())
+            if isinstance(tree, ROOT.TTree) and tree.GetListOfBranches().GetSize() > 10:
                 return tree
+            elif isinstance(tree, ROOT.TDirectory):
+                tree = findTree(tree)
+                if tree:
+                    return tree
+      notFound = True
+    if not options.dir or notFound:
+      for key in f.GetListOfKeys():
+          tree = f.Get(key.GetName())
+          if isinstance(tree, ROOT.TTree) and tree.GetListOfBranches().GetSize() > 10:
+              return tree
+          elif isinstance(tree, ROOT.TDirectory):
+              tree = findTree(tree)
+              if tree:
+                  return tree
     print 'Failed to find a TTree in file', f
     return None
 
@@ -179,6 +195,7 @@ if __name__ == '__main__':
     parser.add_option('-r', '--no-ratio', dest='do_ratio', action='store_false', default=True, help='Do not show ratio plots')
     parser.add_option('-d', '--diff', dest='do_diff', action='store_true', default=False, help='Print events where single variable differs')
     parser.add_option('-v', '--var-diff', dest='var_diff', default='pt_1', help='Variable for printing single event diffs')
+    parser.add_option('--dir', dest='dir', default='', help='Directroy name containing tree to compare.')
 
     (options,args) = parser.parse_args()
 
